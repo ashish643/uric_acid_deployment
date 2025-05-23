@@ -1,31 +1,23 @@
-
-from flask import Flask, request, jsonify
-import joblib
+import cloudpickle
 import numpy as np
+from flask import Flask, request, jsonify
+
+# Load the trained model
+with open("uric_acid_model.pkl", "rb") as f:
+    model = cloudpickle.load(f)
 
 app = Flask(__name__)
-model = joblib.load('uric_acid_model.pkl')
 
-@app.route('/')
+@app.route("/")
 def home():
-    return "Uric Acid Prediction API is running!"
+    return "Uric Acid Concentration Prediction API is running."
 
-@app.route('/predict', methods=['POST'])
+@app.route("/predict", methods=["POST"])
 def predict():
-    data = request.get_json()
-    try:
-        features = np.array([
-            data['peak_current'],
-            data['peak_voltage'],
-            data['avg_current'],
-            data['auc']
-        ]).reshape(1, -1)
-        prediction = model.predict(features)
-        return jsonify({
-            "predicted_uric_acid_concentration_µM": round(float(prediction[0]), 2)
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)})
+    data = request.json
+    input_data = np.array(data["features"]).reshape(1, -1)
+    prediction = model.predict(input_data)
+    return jsonify({"predicted_concentration": prediction[0]})
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(debug=True)
